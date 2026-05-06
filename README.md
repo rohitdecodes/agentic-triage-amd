@@ -2,7 +2,7 @@
 
 > Multi-agent log triage system that autonomously diagnoses production incidents using AMD-hosted LLMs and a LangGraph-powered agent pipeline.
 
-Built for the **AMD Developer Cloud Hackathon — Track 1: AI Agents & Agentic Workflows**
+Built for the **AMD Developer Cloud —  AI Agents & Agentic Workflows**
 
 ---
 
