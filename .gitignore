@@ -11,4 +11,4 @@ build/
 .venv/
 venv/
 *.log
-FIX_GRADER.md 
+FIX_*.md 

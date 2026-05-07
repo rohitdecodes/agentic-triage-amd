@@ -4,6 +4,8 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from agents.pipeline import run_pipeline
+from server.graders import score_episode
+from server.models import EpisodeState
 
 ENV_URL = f"http://{os.environ.get('ENV_HOST', 'localhost')}:{os.environ.get('ENV_PORT', '7860')}"
 SEED = 42
@@ -41,8 +43,31 @@ def main():
             elapsed = time.time() - start_time
 
             if final_state.get("executor_result"):
-                score = final_state["executor_result"]["cumulative_score"]
-                steps = final_state["executor_result"]["total_steps"]
+                executor_result = final_state["executor_result"]
+                steps = executor_result["total_steps"]
+                
+                # Create EpisodeState for grader
+                episode_state = EpisodeState(
+                    task_id=task_id,
+                    episode_id=executor_result.get("episode_id", "unknown"),
+                    action_history=executor_result.get("action_history", []),
+                    step_count=steps,
+                    done=True,
+                    cumulative_score=0.0,
+                    actions_taken=set(),
+                    max_steps=12
+                )
+                
+                # Get official score from grader
+                try:
+                    grader_result = score_episode(task_id, episode_state)
+                    score = grader_result["score"]
+                    breakdown = grader_result.get("breakdown", {})
+                    print(f"\n[GRADER] Official score breakdown: {breakdown}")
+                except Exception as e:
+                    print(f"[ERROR] Grader failed: {e}")
+                    score = 0.0  # Default to 0 if grader fails
+                
                 results[task_id] = {
                     "score": round(score, 4),
                     "steps": steps,

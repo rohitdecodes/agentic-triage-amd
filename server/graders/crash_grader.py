@@ -32,78 +32,63 @@ class CrashGrader(BaseGrader):
 
     def score(self, state: EpisodeState) -> float:
         """
-        Score the completed Task 1 episode.
+        Score the completed Task 1 episode with STRICT validation.
         Deterministic — same action history always produces same score.
+        No partial credits — wrong answers get zero.
         """
-        total = 0.0
+        score = 0.0
         breakdown = {}
 
-        # ── 1. Severity classification ─────────────────────────────────────────
+        # --- SEVERITY CHECK ---
+        # Must be exactly P1. P2 or P3 gets zero (no partial credit).
         severity_value = self._get_first_value(state, "classify_severity")
-        if severity_value == self.CORRECT_SEVERITY:
-            total += 0.30
+        if severity_value == "P1":
+            score += 0.30
             breakdown["severity"] = "+0.30 (correct: P1)"
-        elif severity_value == "P2":
-            total += 0.10  # partial credit — close but not right
-            breakdown["severity"] = "+0.10 (partial: P2 given, P1 expected)"
-        elif severity_value is None:
-            breakdown["severity"] = "+0.00 (never classified)"
         else:
-            breakdown["severity"] = f"+0.00 (wrong: {severity_value})"
+            breakdown["severity"] = f"0.00 (wrong: got '{severity_value}', expected 'P1')"
 
-        # ── 2. Root cause identification ───────────────────────────────────────
+        # --- ROOT CAUSE CHECK ---
+        # Must be exactly payment-service. Any other service gets zero.
         root_cause_value = self._get_first_value(state, "identify_root_cause")
-        if root_cause_value == self.CORRECT_ROOT_CAUSE:
-            total += 0.35
+        if root_cause_value == "payment-service":
+            score += 0.35
             breakdown["root_cause"] = "+0.35 (correct: payment-service)"
-        elif root_cause_value and root_cause_value.startswith("payment"):
-            total += 0.10  # partial — right service family
-            breakdown["root_cause"] = f"+0.10 (partial: {root_cause_value}, right family)"
-        elif root_cause_value is None:
-            breakdown["root_cause"] = "+0.00 (never identified)"
         else:
-            breakdown["root_cause"] = f"+0.00 (wrong: {root_cause_value})"
+            breakdown["root_cause"] = f"0.00 (wrong: got '{root_cause_value}', expected 'payment-service')"
 
-        # ── 3. Remediation ─────────────────────────────────────────────────────
-        remediation_actions = self._get_actions_of_type(state, "remediate")
-        remediation_scored = False
-        for action in remediation_actions:
-            value = action.get("value", "")
-            parts = value.split(":")
-            if len(parts) == 2:
-                prefix, service = parts
-                if prefix == self.CORRECT_REMEDIATION_PREFIX and service == self.CORRECT_REMEDIATION_SERVICE:
-                    total += 0.25
-                    breakdown["remediation"] = f"+0.25 (correct: {value})"
-                    remediation_scored = True
-                    break
-                elif service == self.CORRECT_REMEDIATION_SERVICE:
-                    total += 0.08  # right service, wrong action type
-                    breakdown["remediation"] = f"+0.08 (partial: right service, wrong action)"
-                    remediation_scored = True
-                    break
-
-        if not remediation_scored:
-            breakdown["remediation"] = "+0.00 (no correct remediation)"
-
-        # ── 4. Speed bonus ─────────────────────────────────────────────────────
-        if self._episode_resolved(state):
-            if self._steps_used(state) <= self.SPEED_THRESHOLD:
-                total += 0.10
-                breakdown["speed"] = f"+0.10 (resolved in {self._steps_used(state)} steps)"
-            else:
-                breakdown["speed"] = f"+0.00 (resolved but slow: {self._steps_used(state)} steps)"
+        # --- REMEDIATION CHECK ---
+        # Must contain restart AND target payment-service specifically.
+        # restart:payment-service → correct
+        # restart:auth-service → wrong
+        # kill-query:payment-service → wrong (wrong command type)
+        remediation_value = self._get_first_value(state, "remediate")
+        if (remediation_value and
+            remediation_value.startswith("restart:") and
+            "payment-service" in remediation_value):
+            score += 0.25
+            breakdown["remediation"] = f"+0.25 (correct: {remediation_value})"
         else:
-            total -= 0.10  # penalty for not resolving
-            breakdown["resolution"] = "-0.10 (never resolved)"
+            breakdown["remediation"] = f"0.00 (wrong: got '{remediation_value}', expected 'restart:payment-service')"
 
-        # ── 5. Ignore penalty ──────────────────────────────────────────────────
-        if self._was_action_taken(state, "ignore"):
-            total -= 0.30
-            breakdown["ignore_penalty"] = "-0.30 (ignored P1 incident)"
+        # --- SPEED BONUS ---
+        # Only awarded if ALL above are correct AND resolved within threshold
+        steps_used = self._steps_used(state)
+        resolved = self._episode_resolved(state)
+        if resolved and steps_used <= 5 and score > 0.89:
+            score += 0.10
+            breakdown["speed"] = f"+0.10 (resolved in {steps_used} steps <= 5)"
+        else:
+            breakdown["speed"] = f"0.00 (steps={steps_used}, resolved={resolved})"
 
+        # --- UNRESOLVED PENALTY ---
+        if not resolved:
+            score -= 0.10
+            breakdown["penalty"] = "-0.10 (episode not resolved)"
+
+        print(f"[CRASH_GRADER] Score breakdown: {breakdown}")
         self._breakdown = breakdown
-        return self._clamp(total)
+        return self._clamp(score)
 
     def get_breakdown(self) -> dict:
         """Return scoring breakdown from last score() call."""
