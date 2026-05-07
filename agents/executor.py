@@ -162,7 +162,7 @@ def run_executor(
         action["reward"] = reward
         action_history.append(action)
 
-        print(f"[EXECUTOR] Reward: {reward:.3f} | Done: {done}")
+        print(f"[EXECUTOR] Reward: {reward:.3f}")
         final_observation = observation
 
     print(f"[EXECUTOR] Episode complete. Steps used: {step}")
