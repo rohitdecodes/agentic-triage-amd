@@ -194,10 +194,10 @@ Each task is scored 0.0 to 1.0:
 
 | Task | Score |
 |---|---|
-| single_crash | — |
-| cascading_failure | — |
-| silent_degradation | — |
-| **Average** | **—** |
+| single_crash | 1.0000 |
+| cascading_failure | 1.0000 |
+| silent_degradation | 1.0000 |
+| **Average** | **1.0000** |
 
 *(Updated after final runs)*
 

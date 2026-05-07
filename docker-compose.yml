@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  environment:
+    build: .
+    ports:
+      - "7860:7860"
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  agent:
+    build: .
+    depends_on:
+      environment:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - ENV_HOST=environment
+      - ENV_PORT=7860
+    command: python run_agent.py

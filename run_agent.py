@@ -5,7 +5,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from agents.pipeline import run_pipeline
 
-ENV_URL = "http://localhost:7860"
+ENV_URL = f"http://{os.environ.get('ENV_HOST', 'localhost')}:{os.environ.get('ENV_PORT', '7860')}"
 SEED = 42
 
 TASKS = [

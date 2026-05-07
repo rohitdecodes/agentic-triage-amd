@@ -10,3 +10,5 @@ dist/
 build/
 .venv/
 venv/
+*.log
+FIX_GRADER.md 
