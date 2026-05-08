@@ -1,8 +1,19 @@
+---
+title: AgentTriage AMD Developer Cloud
+emoji: 🔴
+colorFrom: red
+colorTo: blue
+sdk: docker
+pinned: false
+---
+
 # 🔴 AgentTriage — Agentic SRE Incident Response on AMD Developer Cloud
 
 > Multi-agent log triage system that autonomously diagnoses production incidents using AMD-hosted LLMs and a LangGraph-powered agent pipeline.
 
-Built for the **AMD Developer Cloud —  AI Agents & Agentic Workflows**
+Built for the **AMD Developer Cloud Hackathon — Track 1: AI Agents & Agentic Workflows**
+
+👉 **[Try the Live Demo](https://OGrohit-agentic-triage-amd.hf.space)**
 
 ---
 
@@ -33,7 +44,7 @@ A simulated microservice incident environment with a REST API interface (OpenEnv
 | `cascading_failure` | Medium | 30% | user-db slow query → auth → gateway cascade |
 | `silent_degradation` | Hard | 60% | Gradual payment-db latency increase (no crash) |
 
-### The Agent Pipeline (New — AMD-Powered)
+### The Agent Pipeline
 
 ```
 Incoming Logs + Service State
@@ -43,7 +54,7 @@ Incoming Logs + Service State
          ↓
    [EXECUTOR AGENT]
    Takes triage actions step-by-step
-   (classify_severity → identify_root_cause → remediate → resolve)
+   classify_severity → identify_root_cause → remediate → resolve
          ↓
    [SUMMARIZER AGENT]
    Produces structured incident report
@@ -51,7 +62,7 @@ Incoming Logs + Service State
    Episode Score (0.0 → 1.0)
 ```
 
-All agents run on **AMD Developer Cloud hosted LLMs** (Mistral/Llama) via their OpenAI-compatible API endpoint.
+All agents powered by **AMD Developer Cloud** (Qwen2.5-72B on MI300X) with Groq fallback for the live demo.
 
 ---
 
@@ -64,7 +75,7 @@ All agents run on **AMD Developer Cloud hosted LLMs** (Mistral/Llama) via their 
 │  ┌──────────────┐     ┌──────────────────────┐  │
 │  │  LangGraph   │────▶│   AMD Developer      │  │
 │  │  Agent Loop  │     │   Cloud LLM API      │  │
-│  │              │◀────│   (Mistral/Llama)    │  │
+│  │              │◀────│   Qwen2.5-72B        │  │
 │  └──────┬───────┘     └──────────────────────┘  │
 │         │                                        │
 │  ┌──────▼───────┐                               │
@@ -91,7 +102,8 @@ All agents run on **AMD Developer Cloud hosted LLMs** (Mistral/Llama) via their 
 | Layer | Technology |
 |---|---|
 | Agent Framework | LangGraph |
-| LLM Backend | AMD Developer Cloud (Mistral-7B / Llama-3) |
+| LLM Backend | AMD Developer Cloud — Qwen2.5-72B on MI300X |
+| LLM Fallback | Groq — llama-3.3-70b-versatile |
 | Environment API | FastAPI + Uvicorn |
 | Data Validation | Pydantic v2 |
 | Containerization | Docker |
@@ -106,74 +118,83 @@ All agents run on **AMD Developer Cloud hosted LLMs** (Mistral/Llama) via their 
 agentic-triage-amd/
 │
 ├── server/                        # LogTriageEnv (environment core)
-│   ├── app.py                     # FastAPI endpoints (/reset, /step, /state, /tasks)
+│   ├── app.py                     # FastAPI endpoints + UI routes
 │   ├── environment.py             # Core simulator (reset/step/state)
-│   ├── models.py                  # Pydantic schemas (LogLine, TriageAction, etc.)
+│   ├── models.py                  # Pydantic schemas
 │   ├── log_generator.py           # Log + service state generation
 │   ├── scenarios/
 │   │   ├── single_crash.py        # Task 1: Payment service crash
-│   │   ├── cascading.py           # Task 2: user-db → auth → gateway cascade
+│   │   ├── cascading.py           # Task 2: user-db cascade
 │   │   └── silent_degrade.py      # Task 3: Gradual latency degradation
 │   └── graders/
-│       ├── base_grader.py         # Abstract grader interface
-│       ├── crash_grader.py        # Task 1 scoring
-│       └── cascade_grader.py      # Task 2 scoring
+│       ├── base_grader.py
+│       ├── crash_grader.py
+│       ├── cascade_grader.py
+│       └── silent_degrade_grader.py
 │
-├── agents/                        # Multi-agent pipeline (NEW)
-│   ├── planner.py                 # Planner agent — reads logs, sets strategy
-│   ├── executor.py                # Executor agent — takes step-by-step actions
-│   ├── summarizer.py              # Summarizer agent — generates incident report
-│   └── pipeline.py                # LangGraph graph definition
+├── agents/                        # Multi-agent pipeline
+│   ├── planner.py                 # Reads logs, sets strategy
+│   ├── executor.py                # Step-by-step triage actions
+│   ├── summarizer.py              # Generates incident report
+│   └── pipeline.py                # LangGraph orchestration
 │
-├── amd_client.py                  # AMD Developer Cloud LLM client
-├── run_agent.py                   # Entry point — runs agent on all 3 tasks
-├── Dockerfile                     # Container definition
-├── requirements.txt               # Python dependencies
-├── .env.example                   # Environment variable template
-└── README.md                      # This file
+├── static/
+│   └── index.html                 # Judge-facing web UI
+│
+├── amd_client.py                  # LLM client (AMD + Groq fallback)
+├── run_agent.py                   # CLI entry point
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+└── .env.example
 ```
 
 ---
 
-## ⚙️ Setup & Installation
+## ⚙️ Setup & Running
 
-### Prerequisites
-- Python 3.11+
-- Docker
-- AMD Developer Cloud account + API key
+### Option 1 — Docker (Recommended)
 
-### 1. Clone the repo
 ```bash
 git clone https://github.com/YOUR_USERNAME/agentic-triage-amd.git
 cd agentic-triage-amd
-```
-
-### 2. Set environment variables
-```bash
 cp .env.example .env
-# Edit .env — add your AMD_API_KEY
-```
-
-### 3. Run with Docker
-```bash
+# Add your GROQ_API_KEY or AMD_API_KEY to .env
 docker build -t agentic-triage-amd .
 docker run -p 7860:7860 --env-file .env agentic-triage-amd
+# Open http://localhost:7860
 ```
 
-### 4. Run locally
+### Option 2 — Local Python
+
 ```bash
 pip install -r requirements.txt
-# Terminal 1 — start the environment
+# Terminal 1 — environment server
 uvicorn server.app:app --host 0.0.0.0 --port 7860
-# Terminal 2 — run the agent
+# Terminal 2 — run agent on all 3 tasks
 python run_agent.py
+```
+
+---
+
+## 🔑 Environment Variables
+
+```env
+# Use one of these — Groq for free tier, AMD for full power
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.3-70b-versatile
+
+# AMD Developer Cloud VM
+AMD_API_KEY=your_amd_api_key
+AMD_BASE_URL=http://YOUR_VM_IP:8000/v1
+AMD_MODEL=qwen
 ```
 
 ---
 
 ## 🧪 Scoring System
 
-Each task is scored 0.0 to 1.0:
+Each task scored 0.0 → 1.0:
 
 | Action | Points |
 |---|---|
@@ -183,10 +204,7 @@ Each task is scored 0.0 to 1.0:
 | Speed bonus (within step threshold) | +0.10 |
 | Wrong escalation | -0.10 |
 | Ignoring a P1 incident | -0.50 |
-
-**Task 1:** severity=P1, root_cause=payment-service, remediation=restart:payment-service
-**Task 2:** severity=P1, root_cause=user-db, remediation=kill-query:user-db
-**Task 3:** severity=P2, root_cause=payment-db, remediation=flush-cache:payment-db
+| Symptom identified as root cause | -0.10 |
 
 ---
 
@@ -194,40 +212,10 @@ Each task is scored 0.0 to 1.0:
 
 | Task | Score |
 |---|---|
-| single_crash | 1.0000 |
-| cascading_failure | 1.0000 |
-| silent_degradation | 1.0000 |
-| **Average** | **1.0000** |
-
-*(Updated after final runs)*
-
----
-
-## 🔑 Environment Variables
-
-```env
-AMD_API_KEY=your_amd_developer_cloud_api_key
-AMD_BASE_URL=https://api.amd.com/v1
-AMD_MODEL=mistral-7b-instruct
-ENV_HOST=0.0.0.0
-ENV_PORT=7860
-```
-
----
-
-## ✅ Hackathon Checklist
-
-- [ ] AMD Developer Cloud account activated
-- [ ] LLM swap: Groq → AMD hosted model working
-- [ ] Planner agent implemented
-- [ ] Executor agent implemented
-- [ ] Summarizer agent implemented
-- [ ] LangGraph pipeline connecting all three agents
-- [ ] All 3 tasks running end-to-end
-- [ ] Scores recorded and documented
-- [ ] Demo video recorded
-- [ ] Devpost submission written
-- [ ] Repo open-sourced and clean
+| single_crash | 0.9 |
+| cascading_failure | 0.6 |
+| silent_degradation | 0.3 |
+| **Average** | **0.6** |
 
 ---
 
@@ -236,7 +224,7 @@ ENV_PORT=7860
 | Name | Role |
 |---|---|
 | Rohit Patil (Sonic) | Environment + Agent Pipeline |
-| [Teammate] | [Role TBD] |
+| [Teammate] | Infrastructure + AMD VM Setup |
 
 ---
 
@@ -246,4 +234,4 @@ MIT License — open source, built for AMD Developer Cloud Hackathon.
 
 ---
 
-> **Note:** This project builds on prior research work in agentic log triage environments, redesigned and upgraded with a multi-agent architecture specifically for AMD Developer Cloud infrastructure.
+> Built with AMD MI300X (192GB VRAM) · Qwen2.5-72B · LangGraph · FastAPI · Docker
