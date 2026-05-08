@@ -1,124 +1,24 @@
 {
   "results": {
     "single_crash": {
-      "score": 1.0,
-      "steps": 4,
-      "time_seconds": 40.4,
-      "status": "completed"
+      "score": 0.0,
+      "steps": 0,
+      "time_seconds": 18.8,
+      "status": "error: Request timed out."
     },
     "cascading_failure": {
-      "score": 1.0,
-      "steps": 4,
-      "time_seconds": 37.7,
-      "status": "completed"
+      "score": 0.0,
+      "steps": 0,
+      "time_seconds": 18.3,
+      "status": "error: Request timed out."
     },
     "silent_degradation": {
-      "score": 1.0,
-      "steps": 4,
-      "time_seconds": 36.0,
-      "status": "completed"
+      "score": 0.0,
+      "steps": 0,
+      "time_seconds": 18.6,
+      "status": "error: Request timed out."
     }
   },
-  "average_score": 1.0,
-  "reports": {
-    "single_crash": {
-      "incident_title": "Payment Service Critical Failure",
-      "severity": "P1",
-      "root_cause": "payment-service",
-      "timeline": [
-        {
-          "step": 1,
-          "action": "classify_severity",
-          "outcome": "Error rate spike in payment service with a critical exception"
-        },
-        {
-          "step": 2,
-          "action": "identify_root_cause",
-          "outcome": "Payment service is failing health checks and has a fatal error"
-        },
-        {
-          "step": 3,
-          "action": "remediate",
-          "outcome": "Payment service was restarted due to high error rate and NullPointerException"
-        },
-        {
-          "step": 4,
-          "action": "resolve",
-          "outcome": "Payment service was restarted and no further errors observed"
-        }
-      ],
-      "resolution": "The payment service was restarted, which resolved the critical failure and restored normal operation.",
-      "score": 0.9999999999999999,
-      "lessons_learned": "Restarting the service can quickly resolve critical issues, but root cause analysis should be performed to prevent future occurrences.",
-      "escalated_to": null,
-      "task_id": "single_crash",
-      "steps_used": 4
-    },
-    "cascading_failure": {
-      "incident_title": "Critical Failure in Payment Service",
-      "severity": "P1",
-      "root_cause": "payment-service",
-      "timeline": [
-        {
-          "step": 1,
-          "action": "classify_severity",
-          "outcome": "Error in payment-service causing high error rate in API gateway."
-        },
-        {
-          "step": 2,
-          "action": "identify_root_cause",
-          "outcome": "Logs indicate critical errors in payment-service."
-        },
-        {
-          "step": 3,
-          "action": "remediate",
-          "outcome": "High error rate and NullPointerException indicate a critical issue in payment-service."
-        },
-        {
-          "step": 4,
-          "action": "resolve",
-          "outcome": "Payment service was restarted and should be operational."
-        }
-      ],
-      "resolution": "The payment service was restarted, which resolved the high error rate and restored normal operation.",
-      "score": 0.9999999999999999,
-      "lessons_learned": "Restarting the payment service can quickly resolve critical issues. Monitoring for NullPointerExceptions should be improved.",
-      "escalated_to": null,
-      "task_id": "cascading_failure",
-      "steps_used": 4
-    },
-    "silent_degradation": {
-      "incident_title": "High Error Rate in Payment Service",
-      "severity": "P1",
-      "root_cause": "payment-service",
-      "timeline": [
-        {
-          "step": 1,
-          "action": "classify_severity",
-          "outcome": "Error in payment-service causing high error rate in API gateway."
-        },
-        {
-          "step": 2,
-          "action": "identify_root_cause",
-          "outcome": "Multiple critical errors and a failed health check indicate the payment service is the root cause."
-        },
-        {
-          "step": 3,
-          "action": "remediate",
-          "outcome": "Restarting the payment service to recover from the high error rate and NullPointerException."
-        },
-        {
-          "step": 4,
-          "action": "resolve",
-          "outcome": "Payment service was restarted and should be operational."
-        }
-      ],
-      "resolution": "The payment service was restarted, which resolved the high error rate and NullPointerException.",
-      "score": 0.9999999999999999,
-      "lessons_learned": "Regular health checks and monitoring can help detect issues earlier, reducing downtime.",
-      "escalated_to": null,
-      "task_id": "silent_degradation",
-      "steps_used": 4
-    }
-  }
+  "average_score": 0.0,
+  "reports": {}
 }

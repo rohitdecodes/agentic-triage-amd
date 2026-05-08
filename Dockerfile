@@ -1,5 +1,8 @@
 FROM python:3.11-slim
 
+# HuggingFace requires non-root user
+RUN useradd -m -u 1000 appuser
+
 WORKDIR /app
 
 # Copy requirements first (layer caching)
@@ -9,11 +12,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install curl for healthchecks
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-# Copy all source
+# Copy source
 COPY . .
 
-# Expose port (HF Spaces uses 7860)
+# Give ownership to appuser
+RUN chown -R appuser:appuser /app
+
+USER appuser
+
+# HuggingFace Spaces uses port 7860
 EXPOSE 7860
 
-# Start server
 CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "7860"]

@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AgentTriage — AMD Developer Cloud</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      border-bottom: 2px solid #e94560;
+      padding: 24px 32px;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    header h1 span { color: #e94560; }
+
+    header p {
+      color: #a0a0b0;
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #e94560;
+      color: white;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    .card {
+      background: #1a1a2e;
+      border: 1px solid #2a2a4a;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      color: #a0c4ff;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 0.85rem;
+    }
+
+    .task-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .task-btn {
+      background: #0f0f1a;
+      border: 2px solid #2a2a4a;
+      border-radius: 8px;
+      padding: 16px 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      color: #e0e0e0;
+    }
+
+    .task-btn:hover { border-color: #a0c4ff; background: #1a1a3a; }
+
+    .task-btn.selected {
+      border-color: #e94560;
+      background: #2a0a1a;
+    }
+
+    .task-btn .task-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+
+    .task-btn .task-diff {
+      font-size: 0.75rem;
+      color: #808090;
+    }
+
+    .task-btn.selected .task-diff { color: #e94560; }
+
+    .run-btn {
+      background: linear-gradient(135deg, #e94560, #c0392b);
+      color: white;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      transition: opacity 0.2s;
+      letter-spacing: 0.5px;
+    }
+
+    .run-btn:hover { opacity: 0.9; }
+    .run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: #0f0f1a;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }
+
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #808090;
+      flex-shrink: 0;
+    }
+    .dot.running { background: #f39c12; animation: pulse 1s infinite; }
+    .dot.done { background: #2ecc71; }
+    .dot.error { background: #e74c3c; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .log-box {
+      background: #0a0a0f;
+      border: 1px solid #2a2a4a;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #c0c0d0;
+    }
+
+    .log-box .planner { color: #a0c4ff; }
+    .log-box .executor { color: #b8f5b0; }
+    .log-box .summarizer { color: #ffd6a5; }
+    .log-box .reward-pos { color: #2ecc71; }
+    .log-box .reward-neg { color: #e74c3c; }
+    .log-box .separator { color: #404060; }
+
+    .scores-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .score-card {
+      background: #0f0f1a;
+      border: 1px solid #2a2a4a;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .score-card .task-label {
+      font-size: 0.75rem;
+      color: #808090;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .score-card .score-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #2ecc71;
+    }
+
+    .score-card .score-value.low { color: #e74c3c; }
+    .score-card .score-value.mid { color: #f39c12; }
+    .score-card .score-value.pending { color: #404060; font-size: 1.2rem; }
+
+    .avg-card {
+      background: linear-gradient(135deg, #1a2a1a, #0f1a0f);
+      border: 2px solid #2ecc71;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      margin-top: 12px;
+    }
+
+    .avg-card .label { color: #80c080; font-size: 0.85rem; margin-bottom: 8px; }
+    .avg-card .value { font-size: 2.5rem; font-weight: 700; color: #2ecc71; }
+
+    .arch-box {
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #808090;
+      line-height: 1.8;
+      padding: 8px 0;
+    }
+
+    .arch-box .highlight { color: #a0c4ff; font-weight: 600; }
+
+    .stack-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .tag {
+      background: #1a1a3a;
+      border: 1px solid #2a2a5a;
+      color: #a0c4ff;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+    }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🔴 Agent<span>Triage</span> <span class="badge">AMD Developer Cloud</span></h1>
+  <p>Multi-agent SRE incident response pipeline — Planner → Executor → Summarizer</p>
+</header>
+
+<div class="container">
+
+  <!-- Control Panel -->
+  <div class="card">
+    <h2>🎮 Run the Agent</h2>
+
+    <div class="task-grid">
+      <div class="task-btn selected" onclick="selectTask('single_crash', this)">
+        <div class="task-name">Single Crash</div>
+        <div class="task-diff">🟢 Easy · 20% noise</div>
+      </div>
+      <div class="task-btn" onclick="selectTask('cascading_failure', this)">
+        <div class="task-name">Cascading Failure</div>
+        <div class="task-diff">🟡 Medium · 30% noise</div>
+      </div>
+      <div class="task-btn" onclick="selectTask('silent_degradation', this)">
+        <div class="task-name">Silent Degradation</div>
+        <div class="task-diff">🔴 Hard · 60% noise</div>
+      </div>
+    </div>
+
+    <button class="run-btn" id="runBtn" onclick="runAgent()">
+      ▶ RUN AGENT PIPELINE
+    </button>
+  </div>
+
+  <!-- Status + Logs -->
+  <div class="card">
+    <h2>📡 Pipeline Output</h2>
+    <div class="status-bar">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText">Select a task and click Run</span>
+    </div>
+    <div class="log-box" id="logBox">Waiting for agent run...</div>
+  </div>
+
+  <!-- Scores -->
+  <div class="card">
+    <h2>📊 Scores</h2>
+    <div class="scores-grid">
+      <div class="score-card">
+        <div class="task-label">Single Crash</div>
+        <div class="score-value pending" id="score_single_crash">—</div>
+      </div>
+      <div class="score-card">
+        <div class="task-label">Cascading Failure</div>
+        <div class="score-value pending" id="score_cascading_failure">—</div>
+      </div>
+      <div class="score-card">
+        <div class="task-label">Silent Degradation</div>
+        <div class="score-value pending" id="score_silent_degradation">—</div>
+      </div>
+    </div>
+    <div class="avg-card" id="avgCard" style="display:none">
+      <div class="label">AVERAGE SCORE</div>
+      <div class="value" id="avgScore">—</div>
+    </div>
+  </div>
+
+  <!-- Architecture -->
+  <div class="card">
+    <h2>🏗️ Architecture</h2>
+    <div class="arch-box">
+      <span class="highlight">PLANNER</span> → reads logs → decides severity + root cause + strategy<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+      <span class="highlight">EXECUTOR</span> → step loop → classify → identify → remediate → resolve<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+      <span class="highlight">SUMMARIZER</span> → generates structured incident report<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+      Episode Score (0.0 → 1.0)
+    </div>
+    <div class="stack-tags" style="margin-top:16px">
+      <span class="tag">AMD MI300X</span>
+      <span class="tag">Qwen2.5-72B</span>
+      <span class="tag">LangGraph</span>
+      <span class="tag">FastAPI</span>
+      <span class="tag">Docker</span>
+      <span class="tag">vLLM</span>
+      <span class="tag">Python 3.11</span>
+      <span class="tag">OpenEnv</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let selectedTask = 'single_crash';
+  let scores = {};
+
+  function selectTask(taskId, el) {
+    document.querySelectorAll('.task-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedTask = taskId;
+  }
+
+  function setStatus(state, text) {
+    const dot = document.getElementById('statusDot');
+    dot.className = 'dot ' + state;
+    document.getElementById('statusText').textContent = text;
+  }
+
+  function appendLog(text, cls) {
+    const box = document.getElementById('logBox');
+    const line = document.createElement('span');
+    if (cls) line.className = cls;
+    line.textContent = text + '\n';
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function clearLog() {
+    document.getElementById('logBox').innerHTML = '';
+  }
+
+  function setScore(taskId, value) {
+    const el = document.getElementById('score_' + taskId);
+    if (!el) return;
+    const pct = (value * 100).toFixed(0);
+    el.textContent = value.toFixed(4);
+    el.className = 'score-value';
+    if (value >= 0.85) el.classList.add(''); // green default
+    else if (value >= 0.5) el.classList.add('mid');
+    else el.classList.add('low');
+    scores[taskId] = value;
+  }
+
+  async function runAgent() {
+    const btn = document.getElementById('runBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Running...';
+    clearLog();
+    setStatus('running', `Running pipeline on: ${selectedTask.replace(/_/g,' ')}`);
+
+    appendLog('━'.repeat(50), 'separator');
+    appendLog(`Starting pipeline: ${selectedTask}`, 'planner');
+    appendLog('━'.repeat(50), 'separator');
+
+    try {
+      const res = await fetch('/run_pipeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_id: selectedTask, seed: 42 })
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Server error ${res.status}: ${err}`);
+      }
+
+      const data = await res.json();
+
+      // Display planner output
+      if (data.strategy) {
+        appendLog('\n[PLANNER] Strategy:', 'planner');
+        appendLog(`  Suspected Severity : ${data.strategy.suspected_severity || '?'}`, 'planner');
+        appendLog(`  Suspected Root Cause: ${data.strategy.suspected_root_cause || '?'}`, 'planner');
+        appendLog(`  Confidence         : ${data.strategy.confidence || '?'}`, 'planner');
+        appendLog(`  Reasoning          : ${data.strategy.reasoning || '?'}`, 'planner');
+      }
+
+      // Display executor steps
+      if (data.action_history && data.action_history.length > 0) {
+        appendLog('\n[EXECUTOR] Actions taken:', 'executor');
+        data.action_history.forEach((action, i) => {
+          const reward = action.reward || 0;
+          const rewardStr = reward >= 0 ? `+${reward.toFixed(3)}` : reward.toFixed(3);
+          const rewardCls = reward >= 0 ? 'reward-pos' : 'reward-neg';
+          appendLog(`  Step ${i+1}: ${action.action_type}:${action.value}`, 'executor');
+          appendLog(`         Reward: ${rewardStr} | Reasoning: ${action.reasoning || 'N/A'}`, rewardCls);
+        });
+      }
+
+      // Display summarizer report
+      if (data.report) {
+        appendLog('\n[SUMMARIZER] Incident Report:', 'summarizer');
+        appendLog(`  Title     : ${data.report.incident_title || '?'}`, 'summarizer');
+        appendLog(`  Severity  : ${data.report.severity || '?'}`, 'summarizer');
+        appendLog(`  Root Cause: ${data.report.root_cause || '?'}`, 'summarizer');
+        appendLog(`  Resolution: ${data.report.resolution || '?'}`, 'summarizer');
+        if (data.report.lessons_learned) {
+          appendLog(`  Lessons   : ${data.report.lessons_learned}`, 'summarizer');
+        }
+      }
+
+      // Show score
+      const score = data.score || 0;
+      appendLog('\n' + '━'.repeat(50), 'separator');
+      appendLog(`FINAL SCORE: ${score.toFixed(4)}`, score >= 0.8 ? 'reward-pos' : 'mid');
+      appendLog('━'.repeat(50), 'separator');
+
+      setScore(selectedTask, score);
+      setStatus('done', `Completed: ${selectedTask.replace(/_/g,' ')} — Score: ${score.toFixed(4)}`);
+
+      // Update average if we have multiple scores
+      const scoreValues = Object.values(scores);
+      if (scoreValues.length > 0) {
+        const avg = scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length;
+        document.getElementById('avgScore').textContent = avg.toFixed(4);
+        document.getElementById('avgCard').style.display = 'block';
+      }
+
+    } catch (err) {
+      appendLog('\n[ERROR] ' + err.message, 'reward-neg');
+      setStatus('error', 'Pipeline failed — check logs');
+    }
+
+    btn.disabled = false;
+    btn.textContent = '▶ RUN AGENT PIPELINE';
+  }
+</script>
+
+</body>
+</html>

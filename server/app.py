@@ -1,5 +1,7 @@
 from fastapi import FastAPI, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 import uvicorn
 import os
 
@@ -14,6 +16,11 @@ app = FastAPI(
 
 # One environment instance per server process
 env = LogTriageEnvironment()
+
+# Serve static files (judge UI) if present
+_static_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+if os.path.exists(_static_path):
+    app.mount("/static", StaticFiles(directory=_static_path), name="static")
 
 
 @app.get("/health")
@@ -168,3 +175,62 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+class PipelineRequest(BaseModel):
+    task_id: str = "single_crash"
+    seed: int = 42
+
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_frontend():
+    """Serve the judge-facing HTML UI if available."""
+    html_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "index.html")
+    if os.path.exists(html_path):
+        with open(html_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<html><body><h2>UI not found</h2></body></html>")
+
+
+@app.post("/run_pipeline")
+async def run_pipeline_endpoint(request: PipelineRequest):
+    """
+    Runs the full multi-agent pipeline for a single task.
+    Returns strategy, action_history, report, and score.
+    """
+    import sys as _sys
+    _sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+    try:
+        from agents.pipeline import run_pipeline
+
+        final_state = run_pipeline(
+            task_id=request.task_id,
+            env_url=f"http://localhost:{os.environ.get('ENV_PORT', '7860')}",
+            seed=request.seed,
+        )
+
+        executor_result = final_state.get("executor_result", {})
+        strategy = final_state.get("strategy", {})
+        report = final_state.get("report", {})
+
+        return {
+            "task_id": request.task_id,
+            "score": executor_result.get("cumulative_score", 0.0),
+            "total_steps": executor_result.get("total_steps", 0),
+            "action_history": executor_result.get("action_history", []),
+            "strategy": strategy,
+            "report": report,
+            "error": final_state.get("error"),
+        }
+
+    except Exception as e:
+        return {
+            "task_id": request.task_id,
+            "score": 0.0,
+            "total_steps": 0,
+            "action_history": [],
+            "strategy": {},
+            "report": {},
+            "error": str(e),
+        }
